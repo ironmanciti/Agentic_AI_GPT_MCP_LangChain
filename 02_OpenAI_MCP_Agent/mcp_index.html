@@ -105,7 +105,7 @@
   // 말풍선 하나를 채팅 로그에 추가하고 그 요소를 반환
   function addBubble(text, cls) {
     const div = document.createElement("div");
-    div.className = "bubble " + cls;
+    div.className = "bubble " + cls;   // "bubble"(공통 말풍선 모양) + cls(종류별 색·위치)
     div.textContent = text;
     chatLog.appendChild(div);
     chatLog.scrollTop = chatLog.scrollHeight;  // 항상 맨 아래로 스크롤
@@ -115,12 +115,12 @@
   // 폼 제출 -> POST /chat 호출 -> 도구 사용 내역 + 답변 말풍선 표시
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const message = input.value.trim();
-    if (!message) return;
+    const message = input.value.trim();  // 입력창 값의 앞뒤 공백 제거 
+    if (!message) return;   // 빈 값·공백만 입력 → 서버에 보내지 않고 무시
 
-    addBubble(message, "user");
-    input.value = "";
-    sendBtn.disabled = true;
+    addBubble(message, "user");   // 내 질문을 오른쪽 파란 말풍선으로 즉시 표시
+    input.value = "";             // 입력창 비우기 → 다음 질문 입력 준비
+    sendBtn.disabled = true;      // 응답이 올 때까지 전송 버튼 잠금 
 
     // 응답 대기 중 표시
     const waiting = addBubble("답변 생성 중...", "bot loading");
@@ -133,7 +133,7 @@
       });
       const data = await res.json();
 
-      // 도구 사용 내역 표시 (Streamlit 버전의 st.toast에 해당)
+      // 도구 사용 내역 표시 (MCP 서버의 도구가 실제로 호출됐는지 확인용)
       if (data.tool_calls && data.tool_calls.length > 0) {
         chatLog.insertBefore(
           Object.assign(document.createElement("div"), {
@@ -144,15 +144,17 @@
         );
       }
 
-      waiting.classList.remove("loading");
+      // "답변 생성 중..." 말풍선을 새로 만들지 않고 그 자리에서 답변으로 교체
+      waiting.classList.remove("loading");  
+      // 표시 우선순위: 정상 답변(reply) → 서버 에러 메시지(error, 예: 400 빈 메시지) → 기본 문구
       waiting.textContent = data.reply || data.error || "응답이 없습니다.";
     } catch (err) {
       waiting.classList.remove("loading");
       waiting.textContent = "서버 요청에 실패했습니다: " + err;
-    } finally {
-      sendBtn.disabled = false;
-      input.focus();
-      chatLog.scrollTop = chatLog.scrollHeight;
+    } finally {   // 성공·실패와 관계없이 항상 실행 → 화면을 다시 입력 가능 상태로 복구
+      sendBtn.disabled = false;                   // 전송 버튼 잠금 해제 
+      input.focus();                              // 커서를 입력창으로 → 바로 다음 질문 입력
+      chatLog.scrollTop = chatLog.scrollHeight;   // 긴 답변이 들어와도 맨 아래(최신 말풍선)가 보이도록 스크롤
     }
   });
 

@@ -42,19 +42,22 @@ load_dotenv()
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-PORT = 8001
+PORT = 8001   # Flask 채팅 서버 포트 (브라우저에서 http://localhost:8001 접속)
+
+# 이 파일이 있는 폴더 — mcp.json, mcp_index.html, mcp_server.py를 찾기 위한 기준 경로
 BASE_DIR = Path(__file__).resolve().parent
 HTTP_SERVER_URL = "http://localhost:8000/mcp"   # mcp_server.py --http 주소
 
+# 전송 방식 → 화면 표시용 이름 
 TRANSPORT_LABELS = {"stdio": "stdio", "http": "Streamable HTTP"}
+
+# tool_filter로 에이전트에 노출할 도구 목록 
 ALLOWED_TOOLS = [
-    "get_price", "add_item", "list_items",
-    "list_tables", "get_table_schema", "execute_sql_query",
+    "get_price", "add_item", "list_items",                   # 의류 재고 도구
+    "list_tables", "get_table_schema", "execute_sql_query",  # Chinook DB 도구
 ]
 
-# 실행 시 전송 방식 (__main__에서 명령행 인자로 결정)
 TRANSPORT = "stdio"
-
 
 def parse_transport(argv: list[str]) -> str:
     """명령행 인자에 --http가 있으면 "http", 없으면 "stdio" """
@@ -75,8 +78,9 @@ def make_server(transport: str):
         # mcp.json 읽기 → 서버를 subprocess로 기동
         with open(BASE_DIR / "mcp.json", "r", encoding="utf-8") as f:
             server_config = json.load(f)["mcpServers"]["mcp_server"]
-        # "python"은 클라이언트와 같은 인터프리터로 실행 (PATH의 다른 환경 python 방지)
+
         command = server_config["command"]
+        # 지금 클라이언트를 실행 중인 인터프리터(sys.executable)로 서버 기동
         if command == "python":
             command = sys.executable
         return MCPServerStdio(
@@ -113,25 +117,24 @@ async def run_agent(messages: list[dict], transport: str) -> tuple[str, list[str
             ),
             model=os.environ["OPENAI_MODEL"],
             mcp_servers=[server],
-            # ── mcp_config: 스키마 strict 변환 ──
+            # OpenAI의 strict 모드 형식으로 변환 
             mcp_config={"convert_schemas_to_strict": True},
         )
 
         # ── 에이전트 실행 (완성된 답변을 한 번에 반환) ──
         result = await Runner.run(agent, input=messages)
 
-        # 실행 중 호출된 도구 이름 수집 (Streamlit 버전의 st.toast에 해당)
+        # 실행 중 호출된 도구 이름 수집 → 채팅 화면에 "도구 활용" 말풍선으로 표시
         tool_calls = [
-            item.raw_item.name
-            for item in result.new_items
-            if item.type == "tool_call_item"
+            item.raw_item.name 
+            for item in result.new_items if item.type == "tool_call_item"
         ]
 
     return str(result.final_output or ""), tool_calls
 
 
 # ---------------------------------------------------------------------------------
-# 대화 상태 (서버 메모리에 유지 - Streamlit session_state에 해당)
+# 대화 상태 (Flask 서버 메모리에 유지 - 모든 브라우저가 하나의 대화를 공유)
 # - threaded=True로 실행하면 요청이 동시에 처리될 수 있으므로 Lock으로 보호
 # ---------------------------------------------------------------------------------
 chat_history = []
@@ -155,8 +158,11 @@ def home():
 @app.post("/chat")
 def chat():
     """사용자 메시지를 받아 에이전트를 실행하고 답변을 JSON으로 반환"""
+    # 요청 본문(JSON) 파싱 — silent=True: JSON이 아니거나 깨져도 예외 대신 None 반환 → 빈 dict로 대체
     body = request.get_json(silent=True) or {}
+    # "message" 키가 없거나 null이어도 빈 문자열로 처리, 앞뒤 공백 제거 (공백만 입력 → 빈 메시지)
     user_input = (body.get("message") or "").strip()
+    
     if not user_input:
         return jsonify(error="메시지가 비어 있습니다."), 400
 

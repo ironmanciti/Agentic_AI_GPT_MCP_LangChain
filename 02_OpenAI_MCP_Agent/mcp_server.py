@@ -21,6 +21,7 @@ INVENTORY: Dict[str, float] = {
 }
 
 
+# 품목명을 INVENTORY 키 형식으로 통일 (앞뒤 공백 제거 + 소문자)
 def _normalize(item: str) -> str:
     return item.strip().lower()
 
@@ -28,7 +29,8 @@ def _normalize(item: str) -> str:
 # ---------- Chinook DB 전역 연결 ----------
 db_conn = None
 
-
+# @asynccontextmanager: yield 앞 = 시작 시 1회 실행, yield 뒤(finally) = 종료 시 1회 실행
+# → FastMCP(lifespan=...)에 넘기면 서버 시작 시 DB 연결, 서버 종료 시 DB 연결 해제
 @asynccontextmanager
 async def lifespan(app):
     global db_conn
@@ -40,8 +42,8 @@ async def lifespan(app):
         db_conn = sqlite3.connect(db_path)
         db_conn.row_factory = sqlite3.Row
         print("Chinook 데이터베이스 연결 성공", file=sys.stderr)
-        yield
-    finally:
+        yield   # 여기서 멈춰 있는 동안 서버가 동작하며 도구 요청을 처리
+    finally:    # 정상 종료든 에러든 항상 실행 → 연결 누수 방지
         if db_conn:
             db_conn.close()
             db_conn = None
