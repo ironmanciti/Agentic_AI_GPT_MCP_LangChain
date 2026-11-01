@@ -1,1 +1,1 @@
-{"mcpServers":{"mcp_local_server":{"command":"python","args":["mcp_local_server.py"]}}}
+{"mcpServers":{"mcp_server":{"command":"python","args":["mcp_server.py"]}}}

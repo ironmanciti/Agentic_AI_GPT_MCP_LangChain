@@ -1,5 +1,5 @@
 # ---------------------------------------------------------
-# FastMCP 통합 서버: 의류 가격 + Chinook DB (mcp_local_server)
+# FastMCP 통합 서버: 의류 가격 + Chinook DB (mcp_server)
 # ---------------------------------------------------------
 # 의류: get_price, add_item, list_items
 # Chinook: execute_sql_query, list_tables, get_table_schema
@@ -48,7 +48,7 @@ async def lifespan(app):
             print("Chinook 데이터베이스 연결 종료", file=sys.stderr)
 
 
-mcp = FastMCP("mcp_local_server", lifespan=lifespan)
+mcp = FastMCP("mcp_server", lifespan=lifespan)
 
 # ---------- 의류 도구 ----------
 @mcp.tool(description="의류 품목의 가격을 조회합니다. 항상 (found, price)를 반환합니다.")
@@ -124,9 +124,9 @@ def get_table_schema(table_name: str) -> str:
 
 
 # ---------- 서버 실행 ----------
-# 기본: stdio (mcp_1_stdio_client.py가 subprocess로 기동)
-# --http 옵션: Streamable HTTP (mcp_3_streamable_client.py용)
-#   python mcp_local_server.py --http
+# 기본: stdio (mcp_client.py가 subprocess로 기동)
+# --http 옵션: Streamable HTTP (python mcp_client.py --http 용)
+#   python mcp_server.py --http
 if __name__ == "__main__":
     if "--http" in sys.argv:
         mcp.run(transport="streamable-http", host="127.0.0.1", port=8000)

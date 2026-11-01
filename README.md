@@ -14,11 +14,10 @@ Agentic_AI_GPT_MCP/
 │   ├── 05_sessions.py            # 세션 관리
 │   ├── 10_Chatbot_RAG_Agent.py   # RAG 에이전트 구현 실습
 │   └── 11_Rag_Agent_app.py       # RAG 채팅 앱 (Streamlit)
-├── 02_OpenAI_MCP_Agent/          # Part I: MCP 연동 (stdio/hosted/http)
-│   ├── mcp_local_server.py       # FastMCP 서버 (의류 + Chinook DB)
-│   ├── mcp_1_stdio_client.py     # Streamlit UI (stdio)
-│   ├── mcp_2_hosted_client.py    # Streamlit UI (Hosted MCP)
-│   ├── mcp_3_streamable_client.py # Streamlit UI (Streamable HTTP)
+├── 02_OpenAI_MCP_Agent/          # Part I: MCP 연동 (stdio/http)
+│   ├── mcp_server.py             # FastMCP 서버 (의류 + Chinook DB)
+│   ├── mcp_client.py             # Flask 클라이언트 (stdio 기본, --http 옵션)
+│   ├── mcp_index.html            # 채팅 UI
 │   └── mcp.json                  # MCP 서버 자동 기동 설정
 ├── 03_LangChain_Agent/           # Part II/III: LangChain + LangGraph
 │   ├── 101_Tools_Agents.py
@@ -82,41 +81,34 @@ OPENAI_API_KEY=your_openai_api_key
 
 ---
 
-### 2. 02_OpenAI_MCP_Agent — MCP 연동 (stdio / hosted / streamable HTTP)
+### 2. 02_OpenAI_MCP_Agent — MCP 연동 (stdio / streamable HTTP)
 
-MCP 서버(의류 + Chinook DB)를 **stdio / hosted / streamable HTTP** 방식으로 연동하는 실습입니다.
+하나의 MCP 서버(의류 + Chinook DB)에 **stdio / streamable HTTP** 두 가지 방식으로 연결하는 실습입니다.
 
 **구성 파일**
 
 | 파일 | 역할 |
 |------|------|
-| `mcp_local_server.py` | FastMCP 서버 — 의류(get_price, add_item, list_items) + Chinook(execute_sql_query, list_tables, get_table_schema) |
-| `mcp.json` | 클라이언트가 서버를 subprocess로 자동 기동하는 설정 |
-| `mcp_1_stdio_client.py` | Streamlit UI 클라이언트 (stdio, `mcp.json` 사용) |
-| `mcp_2_hosted_client.py` | Streamlit UI 클라이언트 (Hosted MCP) |
-| `mcp_3_streamable_client.py` | Streamlit UI 클라이언트 (Streamable HTTP) |
+| `mcp_server.py` | FastMCP 서버 — 의류(get_price, add_item, list_items) + Chinook(execute_sql_query, list_tables, get_table_schema) |
+| `mcp.json` | stdio 방식에서 클라이언트가 서버를 subprocess로 자동 기동하는 설정 |
+| `mcp_client.py` | Flask 클라이언트 — 기본 stdio, `--http` 옵션 시 Streamable HTTP |
+| `mcp_index.html` | 채팅 UI (제목에 현재 전송 방식 표시) |
 
-**실행 방법**
+**실행 방법** (브라우저에서 http://localhost:8001 접속)
 
 ```bash
-# stdio 방식 (mcp.json 기반 subprocess 자동 기동)
-streamlit run mcp_1_stdio_client.py
+# stdio 방식: 클라이언트가 mcp.json 설정으로 서버를 자동 기동
+python mcp_client.py
 
-# hosted 방식 (원격 MCP 서버)
-streamlit run mcp_2_hosted_client.py
-
-# streamable HTTP 방식
-# (별도 터미널에서 먼저: python mcp_local_server.py --http)
-streamlit run mcp_3_streamable_client.py
+# streamable HTTP 방식: 서버를 먼저 띄운 뒤 접속
+python mcp_server.py --http     # 별도 터미널 (port 8000)
+python mcp_client.py --http
 ```
-
-`mcp_1_stdio_client.py`는 `mcp.json` 설정에 따라 로컬 MCP 서버를 자동 실행합니다.  
-`mcp_3_streamable_client.py`는 HTTP 서버를 먼저 실행해야 합니다.
 
 **필요 환경**
 - 동일 폴더에 `Chinook.db`
-- `.env`: `OPENAI_API_KEY`
-- 패키지: `openai`, `agents`, `streamlit`, `fastmcp`, `python-dotenv`
+- `.env`: `OPENAI_API_KEY`, `OPENAI_MODEL`
+- 패키지: `openai-agents`, `flask`, `fastmcp`, `python-dotenv`
 
 ---
 
