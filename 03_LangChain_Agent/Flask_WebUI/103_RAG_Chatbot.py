@@ -102,7 +102,12 @@ def retrieve_context(query: str):
 #   -> 같은 thread_id로 호출하면 이전 대화를 자동으로 기억 (단기 메모리)
 #   -> 서버 프로세스가 종료되면 대화 이력도 사라짐
 # ---------------------------------------------------------------------------------
-llm = init_chat_model(MODEL_NAME, model_provider="openai")
+llm = init_chat_model(
+    MODEL_NAME,
+    model_provider="openai",
+    use_responses_api=True,        # Responses API 사용 (Chat Completions에서는 추론 모델의 도구 호출 불가)
+    reasoning={"effort": "low"},   # 추론 강도 낮춤 → 실습 속도·비용 절감
+)
 checkpointer = InMemorySaver()
 agent = create_agent(
     llm,
@@ -158,7 +163,7 @@ def chat():
             current_config(),
         )
         ai_msg = response["messages"][-1]  # 마지막 메시지 추출
-        reply = ai_msg.content or "응답이 생성되지 않았습니다."
+        reply = ai_msg.text or "응답이 생성되지 않았습니다."
     except Exception as e:
         reply = f"에러가 발생했습니다: {e}"
 
@@ -191,18 +196,18 @@ def summary():
             role = "System"
         elif isinstance(msg, HumanMessage):
             role = "User"
-        elif isinstance(msg, AIMessage) and msg.content:
+        elif isinstance(msg, AIMessage) and msg.text:
             role = "AI"
         else:
             continue
-        conversation_text.append(f"{role}: {msg.content}")
+        conversation_text.append(f"{role}: {msg.text}")
     joined_conversation = "\n".join(conversation_text)
 
     # 요약 프롬프트 생성 후 LLM에게 요약 요청
     prompt_content = f"""다음 대화를 요약해주세요:\n{joined_conversation}\n--- \n요약:\n"""
     try:
         summary_response = llm.invoke([HumanMessage(content=prompt_content)])
-        summary_text = summary_response.content
+        summary_text = summary_response.text
     except Exception as e:
         summary_text = f"요약 중 에러가 발생했습니다: {e}"
 
