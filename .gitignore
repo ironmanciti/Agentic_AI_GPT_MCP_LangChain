@@ -7,3 +7,15 @@
 chroma_langchain_db/
 long_term_memory.db
 memory_checkpoints.db
+
+# 세션 실습(05_sessions)에서 생성되는 SQLite 대화 기록
+chatbot.db
+chatbot.db-shm
+chatbot.db-wal
+
+# 실습 중 생성되는 기타 SQLite 대화/메모리 DB
+bank_chatbot.db
+bank_chatbot.db-shm
+bank_chatbot.db-wal
+secret_chat.db
+my_memory.db
