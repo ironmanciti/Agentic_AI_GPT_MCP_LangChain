@@ -17,6 +17,7 @@
 #   POST /reset  대화 기록 초기화
 # ---------------------------------------------------------
 
+import os
 import sys
 import asyncio
 import threading
@@ -72,7 +73,7 @@ async def run_agent(
                 "연결된 서버들의 도구를 사용해서 사용자 질문에 답해줘. "
                 "한국어로 답변해."
             ),
-            model="gpt-4o-mini",
+            model=os.environ["OPENAI_MODEL"],
             mcp_servers=manager.active_servers,
             mcp_config={"convert_schemas_to_strict": True},
         )

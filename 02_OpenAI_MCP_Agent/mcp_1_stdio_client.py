@@ -14,6 +14,7 @@
 #   POST /reset  대화 기록 초기화
 # ---------------------------------------------------------
 
+import os
 import sys
 import asyncio
 import json
@@ -74,7 +75,7 @@ async def run_agent(messages: list[dict]) -> tuple[str, list[str]]:
                 "get_price, add_item, list_items, list_tables, get_table_schema, "
                 "execute_sql_query 도구를 활용해 답해."
             ),
-            model="gpt-5-mini",
+            model=os.environ["OPENAI_MODEL"],
             mcp_servers=[server],
             # ── mcp_config: 스키마 strict 변환 ──
             mcp_config={"convert_schemas_to_strict": True},

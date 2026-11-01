@@ -1,9 +1,9 @@
 """
-여행·지식 베이스 RAG 챗봇 (Flask + HTML)
+쇼핑몰 고객 지원 RAG 챗봇 (Flask + HTML)
 
 - Streamlit 없이 Flask로 JSON API를 제공하고, HTML 한 장(바닐라 JavaScript)으로 채팅 UI를 구현합니다.
-- 에이전트 구성은 11_Rag_Agent_app.py(Streamlit 버전)와 동일:
-  날씨(get_weather) + 웹 검색(WebSearchTool) + RAG(FileSearchTool + OpenAI Vector Store)
+- 에이전트 구성은 10_Chatbot_RAG_Agent.ipynb와 동일:
+  웹 검색(WebSearchTool) + RAG(FileSearchTool + OpenAI Vector Store)
 - 실행: python app.py  ->  브라우저에서 http://localhost:8000 접속
 
 라우트 구성:
@@ -12,19 +12,19 @@
   POST /reset  대화 기록 초기화
 """
 
+import os
 import threading
 from pathlib import Path
 
-import requests
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_file
 
 import openai
-from agents import Agent, Runner, function_tool, WebSearchTool, FileSearchTool
+from agents import Agent, Runner, WebSearchTool, FileSearchTool
 
 load_dotenv()
 
-OPENAI_MODEL = "gpt-5.4-mini"
+OPENAI_MODEL = os.environ["OPENAI_MODEL"]
 PORT = 8000
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -58,39 +58,25 @@ else:
             f.close()
 
 
-# 노트북과 동일: 날씨 도구 (open-meteo API)
-@function_tool
-def get_weather(위도: float, 경도: float) -> str:
-    """주어진 위도와 경도에서의 현재 기온(섭씨)을 반환합니다."""
-    url = (
-        "https://api.open-meteo.com/v1/forecast"
-        f"?latitude={위도}&longitude={경도}&current=temperature_2m"
-    )
-    resp = requests.get(url, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-    temp = data.get("current", {}).get("temperature_2m")
-    return f"{temp}°C" if temp is not None else "Unknown"
-
-
 # 에이전트는 서버 시작 시 1회만 생성해서 재사용
 agent = Agent(
-    name="여행·지식 베이스 에이전트",
+    name="쇼핑몰 고객 지원 에이전트",
     instructions=(
-        "당신은 여행 계획과 회사 FAQ를 도와주는 에이전트입니다. "
-        "날씨가 필요하면 get_weather, 최신 정보는 WebSearchTool을 사용하세요. "
-        "사용자의 질문이 환불, 계정, 비밀번호, 이메일, 보안, 전화 상담, 주문 등과 "
-        "조금이라도 관련되면 반드시 file_search 도구를 먼저 호출하여 지식 베이스를 검색하세요. "
-        "file_search 결과를 기반으로만 답하고, 결과가 없으면 '정보를 찾을 수 없습니다'라고 답하세요. "
-        "절대로 지식 베이스를 검색하지 않고 추측으로 답하지 마세요. 답은 간결하게 하세요."
+        "당신은 온라인 쇼핑몰의 고객 지원 상담원입니다. "
+        "비밀번호·이메일 변경 등 계정 관리, 환불 정책, 주문 조회, 전화 상담 시간, "
+        "개인정보 보안에 관한 질문은 반드시 file_search 도구로 지식 베이스를 먼저 검색하고, "
+        "검색된 내용에 근거해서만 답하세요. "
+        "지식 베이스에 없는 내용은 추측하지 말고 고객 지원팀 문의를 안내하세요. "
+        "WebSearchTool은 지식 베이스와 무관한 최신 정보가 필요할 때만 사용하세요. "
+        "답변은 친절하고 간결하게 하세요."
     ),
     model=OPENAI_MODEL,
-    tools=[get_weather, WebSearchTool(), FileSearchTool(vector_store_ids=[vs_id])],
+    tools=[WebSearchTool(), FileSearchTool(vector_store_ids=[vs_id])],
 )
 
 # ---------------------------------------------------------------------------------
 # 대화 상태 (서버 메모리에 유지 - Streamlit session_state에 해당)
-# - threaded=True로 실행하면 요청이 동시에 처리될 수 있으므로 Lock으로 보호
+# - 현재는 threaded=False라 요청이 하나씩 처리되지만, 멀티스레드로 바꿀 때를 대비해 Lock으로 보호
 # ---------------------------------------------------------------------------------
 messages = []
 messages_lock = threading.Lock()
@@ -120,7 +106,7 @@ def chat():
         messages.append({"role": "user", "content": user_input})
         history = list(messages)
 
-    # Runner.run_sync: Flask 요청 처리 스레드에는 실행 중인 이벤트 루프가 없으므로 사용 가능
+    # Runner.run_sync: 요청 처리 스레드에는 실행 중인 이벤트 루프가 없으므로 사용 가능
     try:
         result = Runner.run_sync(agent, input=history)
         reply = str(result.final_output or "응답이 생성되지 않았습니다.")
@@ -143,4 +129,7 @@ def reset():
 
 if __name__ == "__main__":
     print(f"RAG 챗봇 서버 시작: http://localhost:{PORT}  (종료: Ctrl+C)")
-    app.run(host="127.0.0.1", port=PORT, threaded=True)
+    # threaded=False: 모든 요청을 같은 스레드(같은 이벤트 루프)에서 처리한다.
+    # threaded=True면 요청마다 스레드와 이벤트 루프가 달라져, 공유 OpenAI 클라이언트의
+    # 연결이 다른 루프에서 재사용되면서 응답이 멈추는 문제가 생긴다.
+    app.run(host="127.0.0.1", port=PORT, threaded=False)

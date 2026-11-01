@@ -14,6 +14,7 @@ LangChain RAG Agent 기반 Chatbot (Flask + HTML)
   POST /summary  지금까지의 대화 내용을 LLM으로 요약하여 반환
 """
 
+import os
 import threading
 from pathlib import Path
 
@@ -32,7 +33,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 load_dotenv()
 
-MODEL_NAME = "gpt-5.4-mini"
+MODEL_NAME = os.environ["OPENAI_MODEL"]
 PORT = 8000
 BASE_DIR = Path(__file__).resolve().parent
 PDF_PATH = BASE_DIR / "example_data" / "nke-10k-2023_korean.pdf"

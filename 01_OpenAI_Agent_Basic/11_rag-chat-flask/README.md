@@ -3,7 +3,7 @@
 Streamlit 없이 **Flask API + HTML 한 장(바닐라 JavaScript)** 으로
 RAG 챗봇 웹 UI를 구현한 예제입니다.
 
-날씨(`get_weather`) + 웹 검색(`WebSearchTool`) + RAG(`FileSearchTool` + OpenAI Vector Store)
+쇼핑몰 고객 지원 에이전트: 웹 검색(`WebSearchTool`) + RAG(`FileSearchTool` + OpenAI Vector Store)
 
 ## 실행 방법
 

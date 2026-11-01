@@ -19,3 +19,6 @@ bank_chatbot.db-shm
 bank_chatbot.db-wal
 secret_chat.db
 my_memory.db
+
+# Python 바이트코드 캐시
+__pycache__/

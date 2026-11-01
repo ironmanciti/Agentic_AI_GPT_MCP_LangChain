@@ -70,7 +70,7 @@ async def _build_agent():
             "Notion 내부 Integration 토큰(ntn_...)을 설정하세요."
         )
 
-    model = init_chat_model("gpt-5-mini", model_provider="openai")
+    model = init_chat_model(os.environ["OPENAI_MODEL"], model_provider="openai")
 
     # 105 와 동일한 구조에서 "notion" 서버 항목 하나만 추가
     client = MultiServerMCPClient({

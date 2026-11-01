@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chinook MCP Flask Chat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+    background: #f4f6f8;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  .container {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 16px;
+  }
+  header {
+    padding: 12px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 1.2rem; color: #222; }
+  header p { font-size: 0.8rem; color: #777; }
+  #reset-btn {
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  #reset-btn:hover { background: #eee; }
+  #chat-box {
+    flex: 1;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .msg {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.92rem;
+  }
+  .user {
+    align-self: flex-end;
+    background: #2563eb;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .assistant {
+    align-self: flex-start;
+    background: #f1f3f5;
+    color: #222;
+    border-bottom-left-radius: 4px;
+  }
+  .error { background: #fdecea; color: #b71c1c; }
+  .typing { color: #888; font-style: italic; }
+  form {
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+  }
+  #msg-input {
+    flex: 1;
+    padding: 12px 14px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+  }
+  #msg-input:focus { border-color: #2563eb; }
+  #send-btn {
+    padding: 12px 20px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  #send-btn:disabled { background: #9db6e8; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>Chinook MCP Flask Chat</h1>
+      <p>Chinook DB MCP + LangChain v1 Agent</p>
+    </div>
+    <button id="reset-btn" title="대화 기억 초기화">새 대화</button>
+  </header>
+
+  <div id="chat-box">
+    <div class="msg assistant">안녕하세요! Chinook 데이터베이스에 대해 질문해 보세요. (예: 고객 수는 몇 명인가요?)</div>
+  </div>
+
+  <form id="chat-form">
+    <input id="msg-input" type="text" placeholder="질문을 입력하세요..." autocomplete="off" autofocus>
+    <button id="send-btn" type="submit">전송</button>
+  </form>
+</div>
+
+<script>
+  const chatBox = document.getElementById("chat-box");
+  const form = document.getElementById("chat-form");
+  const input = document.getElementById("msg-input");
+  const sendBtn = document.getElementById("send-btn");
+  const resetBtn = document.getElementById("reset-btn");
+
+  function appendMessage(role, text) {
+    const div = document.createElement("div");
+    div.className = "msg " + role;
+    div.textContent = text;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    return div;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const message = input.value.trim();
+    if (!message) return;
+
+    appendMessage("user", message);
+    input.value = "";
+    sendBtn.disabled = true;
+    const typing = appendMessage("assistant typing", "응답 생성 중...");
+
+    try {
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+      const data = await res.json();
+      typing.remove();
+      if (res.ok) {
+        appendMessage("assistant", data.reply);
+      } else {
+        appendMessage("assistant error", data.error || "알 수 없는 오류가 발생했습니다.");
+      }
+    } catch (err) {
+      typing.remove();
+      appendMessage("assistant error", "서버 통신 오류: " + err.message);
+    } finally {
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  });
+
+  resetBtn.addEventListener("click", async () => {
+    await fetch("/reset", { method: "POST" });
+    chatBox.innerHTML = "";
+    appendMessage("assistant", "새 대화를 시작합니다. 무엇이 궁금하신가요?");
+  });
+</script>
+</body>
+</html>

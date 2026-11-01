@@ -49,7 +49,7 @@ async def _build_agent():
             f"Chinook MCP 서버를 찾을 수 없습니다: {_SERVER_SCRIPT}"
         )
 
-    model = init_chat_model("gpt-5-mini", model_provider="openai")
+    model = init_chat_model(os.environ["OPENAI_MODEL"], model_provider="openai")
 
     client = MultiServerMCPClient({
         "chinook": {

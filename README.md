@@ -283,6 +283,8 @@ python flask_app.py
 
 ```env
 OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-6-luna                         # 모든 노트북/앱의 기본 모델 (여기서 일괄 변경)
+OPENAI_MODEL_LARGE=gpt-6.1-sol                  # 고성능 모델 예제용 (07_guardrails)
 GEMINI_API_KEY=your_gemini_api_key              # Gemini 사용 시
 NOTION_API_KEY=your_notion_integration_token    # Notion MCP 사용 시
 NOTION_PAGE_ID=your_default_notion_page_id      # Notion MCP 사용 시
