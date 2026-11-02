@@ -8,6 +8,7 @@ LangChain v1 (create_agent + InMemorySaver) 기반 웹 챗봇.
 """
 import asyncio
 import os
+import sys
 import threading
 import uuid
 from pathlib import Path
@@ -41,7 +42,7 @@ async def _build_agent():
     """MCP 서버 연결 후 LangChain v1 에이전트 생성 (1회 실행)."""
     from langchain.agents import create_agent
     from langchain.chat_models import init_chat_model
-    from langchain_mcp_adapters.client import MultiServerMCPClient
+    from langchain.mcp import MCPAdapter
     from langgraph.checkpoint.memory import InMemorySaver
 
     if not _SERVER_SCRIPT.exists():
@@ -56,14 +57,17 @@ async def _build_agent():
         reasoning={"effort": "low"},   # 추론 강도 낮춤 → 실습 속도·비용 절감
     )
 
-    client = MultiServerMCPClient({
-        "chinook": {
-            "transport": "stdio",
-            "command": "python",
-            "args": [str(_SERVER_SCRIPT)],
+    # MCPConfig 형식(mcpServers)으로 서버 지정 — command 가 있으면 stdio 로 자동 연결
+    adapter = MCPAdapter({
+        "mcpServers": {
+            "chinook": {
+                "command": sys.executable,   # 이 앱과 같은 파이썬(가상환경)으로 서버 실행
+                "args": [str(_SERVER_SCRIPT)],
+            }
         }
     })
-    tools = await client.get_tools()
+    # 도구 목록 조회 → LangChain 도구로 변환 (반환된 도구는 이후에도 계속 호출 가능)
+    tools = await adapter.list_tools()
 
     return create_agent(
         model=model,

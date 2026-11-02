@@ -3,8 +3,9 @@
 
 105_DB_MCP_Agent 의 flask_app.py 에 이어지는 실습 과제입니다.
 105 에서 만든 Chinook MCP 서버(agent_server.py)는 그대로 재사용하고,
-MultiServerMCPClient 의 서버 목록에 Notion 공식 MCP 서버 항목 하나만
+MCPAdapter 의 서버 목록(mcpServers)에 Notion 공식 MCP 서버 항목 하나만
 추가하면 DB 조회 + Notion 기록이 모두 가능한 통합 Agent 가 됩니다.
+(서버가 2개 이상이면 도구 이름 앞에 서버 이름이 붙습니다: chinook_..., notion_...)
 
 사전 준비 (.env):
     OPENAI_API_KEY=sk-...
@@ -21,6 +22,7 @@ MultiServerMCPClient 의 서버 목록에 Notion 공식 MCP 서버 항목 하나
 """
 import asyncio
 import os
+import sys
 import threading
 import uuid
 from pathlib import Path
@@ -54,7 +56,7 @@ async def _build_agent():
     """Chinook + Notion MCP 서버 연결 후 LangChain v1 에이전트 생성 (1회 실행)."""
     from langchain.agents import create_agent
     from langchain.chat_models import init_chat_model
-    from langchain_mcp_adapters.client import MultiServerMCPClient
+    from langchain.mcp import MCPAdapter
     from langgraph.checkpoint.memory import InMemorySaver
     from mcp.client.stdio import get_default_environment
 
@@ -78,21 +80,22 @@ async def _build_agent():
     )
 
     # 105 와 동일한 구조에서 "notion" 서버 항목 하나만 추가
-    client = MultiServerMCPClient({
-        "chinook": {
-            "transport": "stdio",
-            "command": "python",
-            "args": [str(_SERVER_SCRIPT)],
-        },
-        "notion": {
-            "transport": "stdio",
-            "command": "npx",
-            "args": ["-y", "@notionhq/notion-mcp-server"],
-            # npx 실행에 필요한 기본 환경변수(PATH 등)에 인증 토큰만 추가
-            "env": {**get_default_environment(), "NOTION_TOKEN": notion_api_key},
-        },
+    adapter = MCPAdapter({
+        "mcpServers": {
+            "chinook": {
+                "command": sys.executable,   # 이 앱과 같은 파이썬(가상환경)으로 서버 실행
+                "args": [str(_SERVER_SCRIPT)],
+            },
+            "notion": {
+                "command": "npx",
+                "args": ["-y", "@notionhq/notion-mcp-server"],
+                # npx 실행에 필요한 기본 환경변수(PATH 등)에 인증 토큰만 추가
+                "env": {**get_default_environment(), "NOTION_TOKEN": notion_api_key},
+            },
+        }
     })
-    tools = await client.get_tools()
+    # 두 서버의 도구를 한 번에 조회 → LangChain 도구로 변환
+    tools = await adapter.list_tools()
     print(f"통합 도구 로딩 완료: {len(tools)}개 (Chinook + Notion)")
 
     # Notion MCP 에는 기본 페이지 개념이 없으므로, .env 의 기본 페이지 ID를

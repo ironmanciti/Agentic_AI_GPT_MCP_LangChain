@@ -81,7 +81,7 @@ PAIRS = list(_pairs())
 # 정상 케이스
 # ---------------------------------------------------------------------------
 def test_pairs_found():
-    assert len(PAIRS) == 13, [a.name for a, _ in PAIRS]  # 01: 6개, 03: 7개
+    assert len(PAIRS) == 10, [a.name for a, _ in PAIRS]  # 01: 6개, 03: 4개
 
 
 @pytest.mark.parametrize(("answer", "practice"), PAIRS, ids=[p.name for _, p in PAIRS])

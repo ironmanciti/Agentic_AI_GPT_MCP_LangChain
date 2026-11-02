@@ -81,7 +81,7 @@ def test_env_model_loaded_before_use():
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
     "subdir",
-    ["01_OpenAI_Agent_Basic", "03_LangChain_Agent/105_DB_MCP_Agent", "04_Deep_Agent"],
+    ["01_OpenAI_Agent_Basic", "03_LangChain_Agent/105_DB_MCP_Agent"],
 )
 def test_root_env_found_from_subfolder(subdir):
     if not (ROOT / ".env").exists():

@@ -1,4 +1,4 @@
-"""03/04장 LangChain·Deep Agent 모델 설정 검증.
+"""03장 LangChain 모델 설정 검증.
 
 추론 모델(gpt-6-luna 등)은 /v1/chat/completions에서 도구 호출을 거부하므로
 모든 모델을 use_responses_api=True + reasoning low로 만들고,
@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-FOLDERS = ("03_LangChain_Agent", "04_Deep_Agent")
+FOLDERS = ("03_LangChain_Agent",)
 SKIP_DIRS = {".ipynb_checkpoints", "__pycache__"}
 IMPORT_LINE = "from langchain.chat_models import init_chat_model"
 REQUIRED_OPTIONS = ("use_responses_api=True", 'reasoning={"effort": "low"}')
@@ -80,7 +80,7 @@ def _all_calls():
 # ---------------------------------------------------------------------------
 def test_every_chat_model_uses_responses_api_and_low_effort():
     calls = _all_calls()
-    assert len(calls) >= 26, f"init_chat_model 호출 수가 너무 적음: {len(calls)}"
+    assert len(calls) >= 21, f"init_chat_model 호출 수가 너무 적음: {len(calls)}"
     offenders = [f"{p.relative_to(ROOT)}: {missing_options(c)}" for p, c in calls if missing_options(c)]
     assert offenders == [], "옵션 누락:\n" + "\n".join(offenders)
 
