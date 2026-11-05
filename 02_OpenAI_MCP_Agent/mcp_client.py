@@ -68,7 +68,7 @@ def make_server(transport: str):
     """전송 방식에 맞는 MCP 서버 객체 생성 (연결은 async with에서 이루어짐)"""
     # ── tool_filter: 허용할 도구만 노출 / cache_tools_list: 도구 목록 캐싱 ──
     common = {
-        "name": "mcp_server",
+        "name": "mcp_server", 
         "cache_tools_list": True,
         "client_session_timeout_seconds": 30,   # 서버 기동이 느린 PC 대비 (기본 5초)
         "tool_filter": create_static_tool_filter(allowed_tool_names=ALLOWED_TOOLS),
@@ -141,6 +141,14 @@ chat_history = []
 history_lock = threading.Lock()
 
 # ---------------------------------------------------------------------------------
+# 에이전트 전용 이벤트 루프 (백그라운드 스레드에서 계속 실행)
+# - SDK의 공유 HTTP 클라이언트는 연결을 처음 만든 루프에 묶이므로,
+#   요청마다 asyncio.run으로 루프를 새로 만들고 닫으면 "Event loop is closed" 발생
+# ---------------------------------------------------------------------------------
+agent_loop = asyncio.new_event_loop()
+threading.Thread(target=agent_loop.run_forever, daemon=True).start()
+
+# ---------------------------------------------------------------------------------
 # Flask 앱과 라우트
 # ---------------------------------------------------------------------------------
 app = Flask(__name__)
@@ -171,10 +179,11 @@ def chat():
         chat_history.append({"role": "user", "content": user_input})
         history = list(chat_history)
 
-    # asyncio.run: Flask 요청 처리 스레드에는 실행 중인 이벤트 루프가 없으므로 사용 가능
+    # 전용 이벤트 루프에 코루틴을 맡기고, Flask 요청 스레드는 결과가 나올 때까지 대기
     # (요청마다 MCP 서버에 새로 연결했다가 종료 - async with)
     try:
-        reply, tool_calls = asyncio.run(run_agent(history, TRANSPORT))
+        future = asyncio.run_coroutine_threadsafe(run_agent(history, TRANSPORT), agent_loop)
+        reply, tool_calls = future.result()
         if not reply:
             reply = "응답이 생성되지 않았습니다."
     except Exception as e:

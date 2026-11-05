@@ -39,7 +39,8 @@ async def lifespan(app):
         db_path = os.path.join(base_dir, "Chinook.db")
         if not os.path.exists(db_path):
             raise FileNotFoundError(f"Chinook.db 파일을 찾을 수 없습니다: {db_path}")
-        db_conn = sqlite3.connect(db_path)
+        # check_same_thread=False: 도구 함수는 연결을 만든 스레드와 다른 스레드에서 실행됨
+        db_conn = sqlite3.connect(db_path, check_same_thread=False)
         db_conn.row_factory = sqlite3.Row
         print("Chinook 데이터베이스 연결 성공", file=sys.stderr)
         yield   # 여기서 멈춰 있는 동안 서버가 동작하며 도구 요청을 처리
